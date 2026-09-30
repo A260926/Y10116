@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>协议协商演练器</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <h1>协议协商演练器</h1>
+  <div class="sub">offer → select → confirm → active ｜ 能力交集 · 显式降级边 · 崩溃恢复 · 陈旧 token</div>
+</header>
+
+<main>
+  <section class="bar">
+    <label>场景
+      <select id="scenarioSelect"></select>
+    </label>
+    <button id="reloadBtn">刷新</button>
+    <a class="nav" href="draft.html">编辑 draft（两个页面）→</a>
+    <span id="revInfo" class="tag"></span>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <h2>客户端能力</h2>
+      <pre id="clientCaps" class="caps">—</pre>
+    </div>
+    <div class="card">
+      <h2>服务端能力（已发布，不可修改）</h2>
+      <pre id="serverCaps" class="caps">—</pre>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>发起 offer</h2>
+    <div class="row">
+      <label>幂等键 <input id="idemKey" value="run-1"></label>
+      <label><input type="checkbox" id="crashSelect" checked> select 后进程退出（崩溃点）</label>
+    </div>
+    <textarea id="offerBox" rows="10"></textarea>
+    <div class="row">
+      <button id="offerBtn" class="primary">1. offer</button>
+      <button id="selectBtn" disabled>2. select（恢复同一选择）</button>
+      <button id="confirmBtn" disabled>3. confirm</button>
+      <button id="reofferBtn" disabled>开新代次 re-offer</button>
+      <button id="exportBtn" disabled>导出 transcript</button>
+      <button id="importBtn">导入 transcript 校验</button>
+    </div>
+    <div class="row fault">
+      <label><input type="checkbox" id="simulateLoss"> confirm 回复丢失</label>
+      <label><input type="checkbox" id="dupConfirm"> 重复 confirm</label>
+      <label><input type="checkbox" id="staleToken"> 使用旧 token</label>
+      <label><input type="checkbox" id="dupSelect"> 重复 select</label>
+    </div>
+    <div id="actionNote" class="note"></div>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <h2>每轮消息（transcript）</h2>
+      <div id="messages"></div>
+    </div>
+    <div class="card">
+      <h2>候选淘汰 / 降级路径</h2>
+      <div id="rejections"></div>
+      <h2>最终参数</h2>
+      <pre id="finalParams">—</pre>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>会话状态</h2>
+    <pre id="sessionState">—</pre>
+  </section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

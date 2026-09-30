@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>协议协商演练器 · draft 编辑</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <h1>协议协商演练器 · Draft 编辑</h1>
+  <div class="sub">两个页面同时编辑同一份 draft：后保存者因版本冲突被拒绝（optimistic locking）</div>
+</header>
+<main>
+  <section class="bar">
+    <label>场景 <select id="scenarioSelect"></select></label>
+    <button id="loadBtn">加载 draft</button>
+    <a class="nav" href="index.html">← 回演练主页</a>
+    <span class="tag">已发布的能力声明不可修改，发布只创建新版本</span>
+  </section>
+  <section class="grid">
+    <div class="card">
+      <h2>编辑页面 A <span id="verA" class="tag"></span></h2>
+      <textarea id="draftA" rows="22"></textarea>
+      <div class="row">
+        <button id="saveA" class="primary">保存 A</button>
+        <button id="publishA">发布为新 revision</button>
+      </div>
+      <div id="noteA" class="note"></div>
+    </div>
+    <div class="card">
+      <h2>编辑页面 B <span id="verB" class="tag"></span></h2>
+      <textarea id="draftB" rows="22"></textarea>
+      <div class="row">
+        <button id="saveB" class="primary">保存 B</button>
+        <button id="publishB">发布为新 revision</button>
+      </div>
+      <div id="noteB" class="note"></div>
+    </div>
+  </section>
+</main>
+<script src="draft.js"></script>
+</body>
+</html>
