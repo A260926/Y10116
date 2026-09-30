@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>协议协商演练器</title>
+<style>
+:root{--bg:#0f1420;--panel:#171e2e;--panel2:#1d263a;--line:#2a3550;--fg:#e6ebf5;--muted:#8fa0bd;--c:#5b9dff;--s:#4fd08a;--warn:#ffb84d;--err:#ff6b6b;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--fg)}
+header{padding:14px 22px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:14px;background:linear-gradient(180deg,#141b2c,#101624)}
+header h1{font-size:18px;margin:0;letter-spacing:1px}
+header .sub{color:var(--muted);font-size:12px}
+nav{display:flex;gap:4px;padding:0 22px;border-bottom:1px solid var(--line);background:var(--panel)}
+nav button{background:none;border:none;color:var(--muted);padding:11px 16px;cursor:pointer;font-size:14px;border-bottom:2px solid transparent}
+nav button.active{color:var(--fg);border-bottom-color:var(--c)}
+main{padding:18px 22px;max-width:1500px;margin:0 auto}
+.page{display:none}.page.active{display:block}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.card h2{font-size:14px;margin:0 0 10px;color:var(--c)}
+.card h3{font-size:13px;margin:12px 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
+textarea,input,select{background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:6px;padding:7px 9px;font-family:var(--mono);font-size:12px}
+textarea{width:100%;min-height:120px;resize:vertical}
+button.btn{background:var(--c);color:#08101f;border:0;border-radius:6px;padding:7px 14px;font-weight:600;cursor:pointer}
+button.btn.ghost{background:transparent;color:var(--c);border:1px solid var(--c)}
+button.btn.danger{background:var(--err);color:#200}
+button.btn.small{padding:3px 9px;font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:500}
+.tag{display:inline-block;padding:1px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.tag.C2S{background:#1d3a63;color:#9cc4ff}
+.tag.S2C{background:#16432f;color:#8fe6b4}
+.tag.offer{background:#33304a;color:#c9bdff}
+.tag.select{background:#403220;color:#ffcf8f}
+.tag.confirm{background:#20403c;color:#8fe3d4}
+.tag.active{background:#253d22;color:#b0e89a}
+.tag.failed{background:#4a2026;color:#ff9aa2}
+.tag.ok{background:#16432f;color:#8fe6b4}
+.tag.bad{background:#4a2026;color:#ff9aa2}
+.tag.gen{background:#274b66;color:#a9d4ff}
+pre{background:#0b101c;border:1px solid var(--line);border-radius:8px;padding:10px;overflow:auto;font:11px/1.5 var(--mono);margin:6px 0;color:#c9d6ee;max-height:280px}
+.muted{color:var(--muted);font-size:12px}
+.pill{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:6px;border:1px solid var(--line);color:var(--muted)}
+.status-SELECTED{color:var(--warn)}.status-CONFIRMED{color:var(--c)}.status-ACTIVE{color:var(--s)}.status-FAILED{color:var(--err)}
+.msg{border:1px solid var(--line);border-radius:8px;margin:8px 0;overflow:hidden}
+.msg .head{display:flex;gap:8px;align-items:center;padding:7px 10px;background:var(--panel2);font-size:12px;cursor:pointer}
+.msg .body{display:none;padding:8px 10px}
+.msg.open .body{display:block}
+.cand{border-left:3px solid var(--line);padding:8px 10px;margin:8px 0;background:var(--panel2);border-radius:0 8px 8px 0}
+.cand.accepted{border-left-color:var(--s)}
+.cand.rejected{border-left-color:var(--err)}
+.drop{color:var(--warn);font-size:12px;margin:2px 0 2px 12px}
+.kv{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.kv b{color:var(--fg)}
+.toast{position:fixed;right:18px;bottom:18px;max-width:420px;padding:10px 14px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);box-shadow:0 8px 30px #0008;display:none;z-index:99;font-size:13px}
+.toast.err{border-color:var(--err);color:#ffc6c6}.toast.ok{border-color:var(--s)}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.split>div{padding:10px 12px}.split>div:first-child{border-right:1px solid var(--line);background:#121a2b}
+.split h4{margin:0 0 6px;font-size:12px;color:var(--c)}
+.split h4.server{color:var(--s)}
+.chip{display:inline-block;margin:2px 3px 0 0;padding:1px 7px;border-radius:5px;font:11px var(--mono);background:#22304c;border:1px solid var(--line)}
+.chip.yes{color:#9fe8bd}.chip.no{color:#ff9aa2;text-decoration:line-through}
+details summary{cursor:pointer;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>协议协商演练器</h1>
+  <span class="sub">offer → select → confirm → active ｜ 交集 · 依赖 · 互斥组 · 参数范围 · 显式降级 · 崩溃恢复</span>
+</header>
+<nav>
+  <button data-page="sessions" class="active">会话演练</button>
+  <button data-page="new">新建会话（含注入）</button>
+  <button data-page="scenarios">场景与版本</button>
+  <button data-page="draft">草稿冲突演示</button>
+  <button data-page="io">导出 / 导入</button>
+</nav>
+<main>
+<!-- ================= 会话列表+详情 ================= -->
+<section class="page active" id="page-sessions">
+  <div class="card">
+    <h2>会话列表</h2>
+    <div class="row"><button class="btn" onclick="loadSessions()">刷新</button>
+      <span class="muted">预置会话从 v3 明确降级到 v2；重启后仍保持相同选择（选择与场景快照冻结在 SQLite 中）。</span></div>
+    <table id="session-table"><thead><tr><th>会话</th><th>场景</th><th>状态/代次</th><th>选择</th><th>幂等键</th><th></th></tr></thead><tbody></tbody></table>
+  </div>
+  <div id="session-detail"></div>
+</section>
+
+<!-- ================= 新建会话 ================= -->
+<section class="page" id="page-new">
+  <div class="card">
+    <h2>发起会话（offer）</h2>
+    <div class="row">
+      <label>场景 <select id="offer-scenario" onchange="prefillOffer()"></select></label>
+      <label>幂等键 <input id="offer-idem" value="" style="width:240px" placeholder="相同 key+相同 offer 返回原会话"></label>
+      <label><input type="checkbox" id="offer-crash"> 注入：保存 select 后、发 confirm 前崩溃</label>
+    </div>
+    <div class="grid2">
+      <div>
+        <h3>客户端能力（首选版本在前）</h3>
+        <textarea id="offer-client"></textarea>
+      </div>
+      <div>
+        <h3>服务端能力</h3>
+        <textarea id="offer-server"></textarea>
+      </div>
+    </div>
+    <div class="row">
+      <button class="btn" onclick="submitOffer()">发送 offer / select</button>
+      <button class="btn ghost" onclick="prefillOffer()">按场景模板重置</button>
+      <span class="muted" id="offer-hint"></span>
+    </div>
+  </div>
+  <div class="card" id="offer-result-card" style="display:none">
+    <h2>选择结果</h2>
+    <div id="offer-result"></div>
+  </div>
+</section>
+
+<!-- ================= 场景管理 ================= -->
+<section class="page" id="page-scenarios">
+  <div class="card">
+    <h2>场景列表与已发布版本</h2>
+    <button class="btn" onclick="loadScenarios()">刷新</button>
+    <div id="scenario-list"></div>
+  </div>
+  <div class="card">
+    <h2>新建场景 / 编辑草稿</h2>
+    <div class="row">
+      <input id="sc-id" placeholder="场景 id" style="width:180px">
+      <input id="sc-name" placeholder="名称" style="width:240px">
+      <input id="sc-desc" placeholder="描述" style="width:320px">
+    </div>
+    <details open><summary>草稿 JSON（versions：必选能力 requiredCaps、扩展 extensions、参数 params、降级边 downgrade）</summary>
+    <textarea id="sc-draft" style="min-height:260px"></textarea></details>
+    <div class="row">
+      <button class="btn" onclick="createScenario()">创建场景（保存草稿）</button>
+      <button class="btn ghost" onclick="saveSelectedDraft()">保存选中场景草稿</button>
+      <button class="btn" onclick="publishSelected()">发布（已发布版本声明不可变，只能新增版本）</button>
+      <span class="muted" id="sc-revision"></span>
+    </div>
+    <div class="muted">循环边 / 悬空边在发布前校验并拒绝；发布后修改旧版本号声明会返回 VERSION_IMMUTABLE 冲突。</div>
+  </div>
+</section>
+
+<!-- ================= 草稿冲突 ================= -->
+<section class="page" id="page-draft">
+  <div class="card">
+    <h2>两个编辑窗口的版本冲突</h2>
+    <p class="muted">模拟编辑器 A、B 同时打开同一份草稿：A 先保存成功（revision 前进），B 基于旧 revision 保存将被拒绝；B 刷新后重试成功。</p>
+    <div class="row"><label>场景 <select id="conf-scenario"></select></label>
+      <button class="btn" onclick="confOpen()">两个窗口同时打开</button></div>
+    <div class="grid2">
+      <div class="card" style="margin:0"><h2>编辑器 A</h2><pre id="conf-a"></pre>
+        <button class="btn small" onclick="confSave('a')">A 保存</button> <span id="conf-a-res" class="muted"></span></div>
+      <div class="card" style="margin:0"><h2>编辑器 B</h2><pre id="conf-b"></pre>
+        <button class="btn small" onclick="confSave('b')">B 保存（旧 revision）</button>
+        <button class="btn ghost small" onclick="confRefreshB()">B 刷新后重试</button> <span id="conf-b-res" class="muted"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 导入导出 ================= -->
+<section class="page" id="page-io">
+  <div class="card">
+    <h2>导出 transcript</h2>
+    <div class="row"><label>会话 <select id="io-session"></select></label>
+      <button class="btn" onclick="exportTranscript()">导出</button></div>
+    <pre id="io-export" style="min-height:160px"></pre>
+  </div>
+  <div class="card">
+    <h2>导入 transcript 并重算</h2>
+    <p class="muted">导入时用内嵌的双方能力与场景快照重跑协商引擎；sameSelection=true 表示得到同样选择。</p>
+    <textarea id="io-import" style="min-height:160px" placeholder="粘贴导出的 transcript JSON"></textarea>
+    <div class="row"><button class="btn" onclick="importTranscript()">导入并校验</button><span id="io-res"></span></div>
+  </div>
+</section>
+</main>
+<div class="toast" id="toast"></div>
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+function toast(msg, kind='err'){ const t=$('#toast'); t.textContent=msg; t.className='toast '+kind; t.style.display='block';
+  clearTimeout(window.__tt); window.__tt=setTimeout(()=>t.style.display='none', 4200); }
+async function api(path, opts={}){
+  const res = await fetch(path, {headers:{'Content-Type':'application/json'}, ...opts});
+  const text = await res.text();
+  let data; try{ data = text ? JSON.parse(text) : {}; }catch{ data = {raw:text}; }
+  if(!res.ok){ const m = data.error ? data.error.code+': '+data.error.message : ('HTTP '+res.status); throw new Error(m); }
+  return data;
+}
+const esc = s => String(s??'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const pretty = o => JSON.stringify(o,null,2);
+const phaseOrder=['offer','select','confirm','active'];
+
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  $$('nav button').forEach(x=>x.classList.toggle('active',x===b));
+  $$('.page').forEach(p=>p.classList.toggle('active',p.id==='page-'+b.dataset.page));
+  if(b.dataset.page==='sessions') loadSessions();
+  if(b.dataset.page==='scenarios'){ loadScenarios(); }
+  if(b.dataset.page==='draft') loadConfScenarios();
+  if(b.dataset.page==='io') loadIoSessions();
+});
+
+// ---------- sessions ----------
+async function loadSessions(){
+  const data = await api('/api/sessions');
+  const tb = $('#session-table tbody'); tb.innerHTML='';
+  for(const s of data.sessions){
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td><b>${esc(s.sessionId)}</b><br><span class="pill">g${s.generation}</span></td>
+      <td>${esc(s.scenarioId)}</td>
+      <td class="status-${s.status}">${s.status}</td>
+      <td>${s.selection?esc(s.selection.version):(s.failure?'<span class=tag failed>失败</span>':'—')}</td>
+      <td class="muted">${esc(s.idemKey)}</td>
+      <td><button class="btn small" onclick="showSession('${s.sessionId}')">查看并排详情</button></td>`;
+    tb.appendChild(tr);
+  }
+}
+
+async function showSession(id){
+  const s = await api('/api/sessions/'+id);
+  const box = $('#session-detail');
+  const caps = v => (v||[]).map(c=>`<span class=chip>${esc(c)}</span>`).join('');
+  const exts = arr => (arr||[]).map(e=>`<span class=chip title="${esc(e.required?'必选':'')} ${esc(e.ignorable?'可忽略未知':'')}">${esc(e.name)}${e.required?'*':''}${e.ignorable?'~':''}</span>`).join('');
+  const versions = arr => (arr||[]).map((v,i)=>`<span class="chip ${i===0?'yes':''}">${esc(v)}</span>`).join('');
+  let html = `<div class="card"><h2>会话 ${esc(s.sessionId)} <span class="status-${s.status}">${s.status}</span>
+      <span class="pill">代次 g${s.generation}</span>
+      ${s.idempotentReplay?'<span class="tag gen">幂等返回原会话</span>':''}</h2>
+    <div class="split">
+      <div><h4>客户端 CLIENT（首选版本高亮）</h4>
+        <div class="muted">版本</div>${versions(s.client.versions)}
+        <h4 style="margin-top:8px">必选能力</h4>${caps(s.client.caps)}
+        <h4>扩展声明（*必选 / ~可忽略未知）</h4>${exts(s.client.extensions)}
+        <h4>参数范围</h4><pre>${esc(pretty(s.client.params))}</pre></div>
+      <div><h4 class="server">服务端 SERVER</h4>
+        <div class="muted">版本</div>${versions(s.server.versions)}
+        <h4 style="margin-top:8px">必选能力</h4>${caps(s.server.caps)}
+        <h4>扩展声明</h4>${exts(s.server.extensions)}
+        <h4>参数范围</h4><pre>${esc(pretty(s.server.params))}</pre></div>
+    </div>`;
+
+  // 最终参数 / 选择
+  if(s.selection){
+    html += `<h3 style="margin-top:14px">最终选择（冻结 hash: <span class=kv>${esc(s.selectionHash)}</span>）</h3>
+      <div class="kv">版本 <b>${esc(s.selection.version)}</b> ｜ 能力 ${(s.selection.caps||[]).map(esc).join(', ')}
+      ｜ 扩展 ${(s.selection.extensions||[]).map(esc).join(', ')}</div>
+      ${(s.selection.ignoredUnknown||[]).length?`<div class="muted">保留在 transcript 的可忽略未知扩展：${s.selection.ignoredUnknown.map(esc).join('、')}</div>`:''}
+      <pre>${esc(pretty(s.selection.params))}</pre>`;
+  }
+  if(s.failure){ html += `<h3 style="color:var(--err)">明确失败</h3><pre>${esc(pretty(s.failure))}</pre>`; }
+
+  // 候选淘汰
+  html += `<h3>候选版本与淘汰原因（只沿显式降级边）</h3>`;
+  for(const c of (s.candidates||[])){
+    const drops=[...(c.droppedExtensions||[]),...(c.droppedParams||[])];
+    html += `<div class="cand ${c.accepted?'accepted':'rejected'}">
+      <b>${esc(c.version)}</b> — ${c.accepted?'<span class="tag ok">接受</span>':`<span class="tag bad">拒绝 ${esc(c.rejectCode)}</span> <span class="muted">${esc(c.rejectDetail)}</span>`}
+      ${(c.ignoredUnknown||[]).length?`<div class="drop">未知扩展保留 transcript：${c.ignoredUnknown.map(esc).join('、')}</div>`:''}
+      ${drops.map(d=>`<div class="drop">· ${esc(d)}</div>`).join('')}</div>`;
+  }
+
+  // 操作
+  html += `<h3>推进 / 注入</h3><div class="row">
+    <button class="btn small" onclick="doConfirm('${s.id}',false,false)">confirm</button>
+    <button class="btn small" onclick="doConfirm('${s.id}',true,false)">注入 confirm 丢失(503)</button>
+    <button class="btn small" onclick="doConfirm('${s.id}',false,true)">注入重复 confirm</button>
+    <button class="btn small" onclick="doActive('${s.id}',false)">active（当前 token）</button>
+    <button class="btn danger small" onclick="doActive('${s.id}',true)">注入陈旧 token</button>
+    <button class="btn ghost small" onclick="doRenegotiate('${s.id}')">ACTIVE 后重新协商（旧 token 失效）</button>
+  </div><div class="kv">当前 token: <b id="cur-token">${esc(s.token||'')}</b></div>`;
+
+  // 消息
+  html += `<h3>逐轮消息（offer/select/confirm/active，含字节数与解析结果）</h3>`;
+  for(const m of s.messages){
+    let parsed; try{ parsed = JSON.stringify(JSON.parse(m.parsed),null,2);}catch{ parsed = m.parsed; }
+    html += `<div class="msg" onclick="this.classList.toggle('open')">
+      <div class="head"><span class="tag ${m.direction}">${m.direction}</span>
+        <span class="tag ${m.phase}">${m.phase}</span><span class="pill">g${m.generation} #${m.seq}</span>
+        <span class="pill">${m.byteCount} bytes</span><span>${esc(m.note||'')}</span></div>
+      <div class="body"><div class="muted">原始字节（线上报文）</div><pre>${esc(m.rawText)}</pre>
+        <div class="muted">解析结果</div><pre>${esc(parsed)}</pre></div></div>`;
+  }
+  html += `</div>`;
+  box.innerHTML=html;
+  box.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+async function doConfirm(id, lose, dup){
+  const s = await api('/api/sessions/'+id);
+  const body={sessionId:id, selectionHash:s.selectionHash, token:lose?'':s.token,
+    injections:{loseConfirm:lose, duplicateConfirm:dup}};
+  try{ const r=await api('/api/sessions/'+id+'/confirm',{method:'POST',body:JSON.stringify(body)});
+    toast(lose?'不应成功':'confirm 完成 / 重复返回原结果','ok'); await showSession(r.sessionId);
+  }catch(e){ toast(e.message); if(!lose) await loadSessions(); }
+}
+async function doActive(id, stale){
+  const s = await api('/api/sessions/'+id);
+  const token = stale ? 'tok_STALE_INJECTED_OLD_GENERATION' : s.token;
+  try{ const r=await api('/api/sessions/'+id+'/active',{method:'POST',body:JSON.stringify({sessionId:id,token})});
+    toast(stale?'陈旧 token 不应成功':'active 完成','ok'); await showSession(r.sessionId);
+  }catch(e){ toast(e.message); }
+}
+async function doRenegotiate(id){
+  const s = await api('/api/sessions/'+id);
+  const body={sessionId:id, oldToken:s.token, client:s.client, server:s.server};
+  try{ const r=await api('/api/sessions/'+id+'/renegotiate',{method:'POST',body:JSON.stringify(body)});
+    toast('新代次 g'+r.generation+' 已冻结；旧 token 现在不能激活','ok'); await showSession(r.sessionId);
+  }catch(e){ toast(e.message); }
+}
+
+// ---------- new offer ----------
+let scenariosCache=[];
+async function loadScenarios(){
+  const data = await api('/api/scenarios'); scenariosCache=data.scenarios||[];
+  $('#offer-scenario').innerHTML = scenariosCache.map(x=>`<option>${esc(x.id)}</option>`).join('');
+  $('#conf-scenario').innerHTML = scenariosCache.map(x=>`<option>${esc(x.id)}</option>`).join('');
+  const list=$('#scenario-list'); list.innerHTML='';
+  for(const sc of scenariosCache){
+    const div=document.createElement('div');
+    div.className='cand accepted';
+    div.innerHTML=`<b>${esc(sc.id)}</b> — ${esc(sc.name)}
+      <span class="pill">revision ${sc.revision}</span>
+      <span class="muted">${esc(sc.description||'')}</span>
+      <div class="muted" style="margin-top:6px">已发布版本：${(sc.published||[]).map(v=>esc(v.version)).join(' → ')||'（尚未发布）'}</div>
+      <div style="margin-top:6px"><button class="btn small" onclick='editDraft(${JSON.stringify(sc.id)})'>编辑草稿</button></div>`;
+    list.appendChild(div);
+  }
+  prefillOffer();
+}
+function scenarioTemplate(id){
+  // 内置一份可直接使用的双方能力模板（对应预置场景）
+  const client={name:'client',versions:['v3','v2','v1'],caps:['record-tls','sni','quic-transport'],
+    extensions:[{name:'quic-0rtt'},{name:'quic-migration'},{name:'session-resumption'},{name:'0rtt'},{name:'alpn'},{name:'x-grease-experiment',ignorable:true}],
+    params:{mtu:{min:1400,max:1500},cipher:{values:['AES-GCM','CHACHA20']}}};
+  const server={name:'server',versions:['v3','v2','v1'],caps:['record-tls','sni'],
+    extensions:[{name:'session-resumption'},{name:'0rtt'},{name:'alpn'},{name:'x-grease-experiment',ignorable:true}],
+    params:{mtu:{min:1280,max:1480},cipher:{values:['AES-GCM']}}};
+  return {client,server};
+}
+function prefillOffer(){
+  const id=$('#offer-scenario').value||Seed_SCENARIO;
+  const t=scenarioTemplate(id);
+  $('#offer-client').value=pretty(t.client);
+  $('#offer-server').value=pretty(t.server);
+  if(!$('#offer-idem').value) $('#offer-idem').value='k-'+Math.random().toString(36).slice(2,10);
+}
+async function submitOffer(){
+  const scenarioId=$('#offer-scenario').value;
+  let client,server;
+  try{ client=JSON.parse($('#offer-client').value); server=JSON.parse($('#offer-server').value); }
+  catch(e){ return toast('能力 JSON 解析失败: '+e.message); }
+  const body={idemKey:$('#offer-idem').value.trim(), scenarioId, client, server,
+    injections:{crashAfterSelect:$('#offer-crash').checked}};
+  try{
+    const s=await api('/api/sessions',{method:'POST',body:JSON.stringify(body)});
+    $('#offer-result-card').style.display='block';
+    $('#offer-result').innerHTML=`<div class="kv">会话 <b>${esc(s.sessionId)}</b>
+      状态 <b class="status-${s.status}">${s.status}</b> ${s.idempotentReplay?'<span class="tag gen">原会话</span>':''}</div>
+      ${s.selection?`<div>选择版本 <b>${esc(s.selection.version)}</b>，hash <span class=kv>${esc(s.selectionHash)}</span><br>token: <span class=kv>${esc(s.token)}</span></div>`:''}
+      ${s.failure?`<pre>${esc(pretty(s.failure))}</pre>`:''}
+      <div style="margin-top:8px"><button class="btn small" onclick="showSession('${s.sessionId}')">打开并排详情</button></div>`;
+    toast('select 已完成并落盘','ok');
+  }catch(e){
+    $('#offer-result-card').style.display='block';
+    $('#offer-result').innerHTML=`<pre style="color:var(--err)">${esc(e.message)}</pre>`;
+    toast(e.message);
+  }
+}
+
+// ---------- scenario draft ----------
+let editingId=null, editingRev=0;
+function emptyDraft(){ return {versions:[{version:'v1',requiredCaps:[],extensions:[],params:{},downgrade:[]}]}; }
+async function createScenario(){
+  let draft; try{ draft=JSON.parse($('#sc-draft').value||'{}'); }catch(e){ return toast('草稿 JSON 非法: '+e.message); }
+  const body={id:$('#sc-id').value.trim(),name:$('#sc-name').value.trim(),description:$('#sc-desc').value,draft};
+  try{ await api('/api/scenarios',{method:'POST',body:JSON.stringify(body)}); toast('场景已创建（草稿 revision=0）','ok'); await loadScenarios(); }
+  catch(e){ toast(e.message); }
+}
+function editDraft(id){
+  const sc=scenariosCache.find(x=>x.id===id); if(!sc) return;
+  editingId=id; editingRev=sc.revision;
+  $('#sc-id').value=sc.id; $('#sc-name').value=sc.name; $('#sc-desc').value=sc.description||'';
+  $('#sc-draft').value=pretty(sc.draft||emptyDraft());
+  $('#sc-revision').textContent='正在编辑 '+id+'，草稿基于 revision '+sc.revision;
+}
+async function saveSelectedDraft(){
+  if(!editingId) return toast('请先在场景列表点“编辑草稿”');
+  let draft; try{ draft=JSON.parse($('#sc-draft').value); }catch(e){ return toast('草稿 JSON 非法: '+e.message); }
+  try{
+    const r=await api(`/api/scenarios/${encodeURIComponent(editingId)}/draft`,
+      {method:'PUT',body:JSON.stringify({expectedRevision:editingRev,draft})});
+    editingRev=r.revision; $('#sc-revision').textContent='保存成功，新 revision '+r.revision;
+    toast('草稿已保存 revision='+r.revision,'ok'); await loadScenarios();
+  }catch(e){ toast(e.message); }
+}
+async function publishSelected(){
+  if(!editingId) return toast('请先选择场景');
+  try{ const r=await api(`/api/scenarios/${encodeURIComponent(editingId)}/publish`,{method:'POST'});
+    editingRev=r.revision; toast('发布完成 revision='+r.revision+'；已发布版本：'+(r.published||[]).map(v=>v.version).join(', '),'ok');
+    await loadScenarios(); }
+  catch(e){ toast(e.message); }
+}
+
+// ---------- revision conflict demo ----------
+let confState={a:null,b:null,revision:0};
+async function loadConfScenarios(){
+  if(!scenariosCache.length) await loadScenarios();
+  $('#conf-scenario').innerHTML = scenariosCache.map(x=>`<option>${esc(x.id)}</option>`).join('');
+}
+async function confOpen(){
+  const id=$('#conf-scenario').value;
+  const sc=await api('/api/scenarios/'+id);
+  confState.a=JSON.parse(JSON.stringify(sc.draft)); confState.b=JSON.parse(JSON.stringify(sc.draft));
+  confState.revision=sc.revision;
+  confRender();
+  $('#conf-a-res').textContent=''; $('#conf-b-res').textContent='';
+}
+function confRender(){
+  $('#conf-a').textContent='revision '+confState.revision+'\n\n'+pretty(confState.a);
+  $('#conf-b').textContent='revision '+confState.revision+' （旧快照）\n\n'+pretty(confState.b);
+}
+async function confSave(which){
+  const id=$('#conf-scenario').value;
+  const draft = which==='a'?confState.a:confState.b;
+  // 两个窗口都基于打开时的 revision
+  try{
+    const r=await api(`/api/scenarios/${encodeURIComponent(id)}/draft`,
+      {method:'PUT',body:JSON.stringify({expectedRevision:confState.revision,draft})});
+    $('#conf-'+which+'-res').innerHTML='<span style="color:var(--s)">成功 → revision '+r.revision+'</span>';
+    confState.revision=r.revision; confRender();
+  }catch(e){ $('#conf-'+which+'-res').innerHTML='<span style="color:var(--err)">'+esc(e.message)+'</span>'; }
+}
+async function confRefreshB(){
+  const id=$('#conf-scenario').value;
+  const sc=await api('/api/scenarios/'+id);
+  confState.b=sc.draft; confState.revision=sc.revision; confRender();
+  await confSave('b');
+}
+
+// ---------- export / import ----------
+async function loadIoSessions(){
+  const data=await api('/api/sessions');
+  $('#io-session').innerHTML=data.sessions.map(s=>`<option value="${esc(s.sessionId)}">${esc(s.sessionId)} — ${s.status} ${s.selection?esc(s.selection.version):''}</option>`).join('');
+}
+async function exportTranscript(){
+  const id=$('#io-session').value;
+  const doc=await api('/api/sessions/'+encodeURIComponent(id)+'/export');
+  $('#io-export').textContent=pretty(doc);
+  $('#io-import').value=pretty(doc);
+  toast('transcript 已导出（含逐消息字节与场景快照）','ok');
+}
+async function importTranscript(){
+  let doc; try{ doc=JSON.parse($('#io-import').value); }catch(e){ return toast('导入 JSON 非法: '+e.message); }
+  try{ const r=await api('/api/transcripts/import',{method:'POST',body:JSON.stringify(doc)});
+    $('#io-res').innerHTML = r.sameSelection
+      ? `<span class="tag ok">sameSelection=true</span> <span class=kv>${esc(r.recomputedHash)}</span> 新会话 ${esc(r.importedSessionId)}`
+      : `<span class="tag bad">sameSelection=false</span><pre>${esc(pretty(r))}</pre>`;
+    toast(r.sameSelection?'导入完成：重算选择一致':'导入完成，但重算选择不一致');
+    await loadSessions();
+  }catch(e){ toast(e.message); }
+}
+
+// ---------- init ----------
+const Seed_SCENARIO='tls-layered';
+(async function init(){
+  try{
+    $('#sc-draft').value=pretty({versions:[
+      {version:'v1',requiredCaps:['cap-a'],extensions:[],params:{},downgrade:[]}
+    ]});
+    await loadScenarios();
+    await loadSessions();
+  }catch(e){ toast('初始化失败: '+e.message); }
+})();
+</script>
+</body></html>
